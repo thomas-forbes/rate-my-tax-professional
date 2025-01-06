@@ -1,0 +1,49 @@
+{
+  "name": "example-with-drizzle",
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.17.16",
+    "autoprefixer": "^10.4.20",
+    "bun-types": "^1.2.0",
+    "drizzle-kit": "^0.30.2",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "@kobalte/core": "^0.13.7",
+    "@neondatabase/serverless": "^0.10.4",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.15.3",
+    "@solidjs/start": "^1.0.11",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.4",
+    "fuse.js": "^7.0.0",
+    "lucide-solid": "^0.469.0",
+    "nanoid": "^5.0.9",
+    "posthog-js": "^1.215.1",
+    "posthog-node": "^4.4.1",
+    "puppeteer": "^23.11.1",
+    "solid-js": "^1.9.4",
+    "solid-sonner": "^0.2.8",
+    "solid-turnstile": "^0.0.2",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "vinxi": "^0.5.1",
+    "vite-plugin-node-stdlib-browser": "^0.2.1"
+  },
+  "overrides": {
+    "vite": "5.4.10"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

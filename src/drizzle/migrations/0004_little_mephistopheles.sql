@@ -1,0 +1,1 @@
+CREATE INDEX "professionals_name_index" ON "professionals" USING btree ("name");
