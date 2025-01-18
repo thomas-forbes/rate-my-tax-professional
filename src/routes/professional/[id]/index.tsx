@@ -1,6 +1,6 @@
 import Layout from '~/components/Layout'
 
-import { A } from '@solidjs/router'
+import { A, useParams } from '@solidjs/router'
 import { Globe2, MapPin, Star, ThumbsUp } from 'lucide-solid'
 import { For, Show, Suspense } from 'solid-js'
 import { Badge } from '~/components/ui/badge'
@@ -208,6 +208,8 @@ const professional = {
 }
 
 export default function ProfessionalProfile() {
+  const params = useParams()
+  console.log(params.id)
   return (
     <Layout>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
