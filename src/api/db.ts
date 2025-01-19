@@ -1,6 +1,8 @@
-import Database from 'better-sqlite3'
-import { BetterSQLite3Database, drizzle } from 'drizzle-orm/better-sqlite3'
+'use server'
 
-const sqlite = new Database('./drizzle/db.sqlite')
+import { drizzle } from 'drizzle-orm/neon-http'
 
-export const db: BetterSQLite3Database = drizzle(sqlite)
+const DB_URL = process.env.DB_URL
+if (!DB_URL) throw new Error('DB_URL is not set')
+
+export const db = drizzle({ connection: DB_URL, casing: 'snake_case' })
