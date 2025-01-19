@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1737321546657,
+      "tag": "0000_mute_hemingway",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1737321776059,
+      "tag": "0001_big_deathbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1737321818346,
+      "tag": "0002_old_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1737324601332,
+      "tag": "0003_colossal_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1737324986709,
+      "tag": "0004_little_mephistopheles",
+      "breakpoints": true
+    }
+  ]
+}

@@ -13,8 +13,7 @@
     "types": ["vinxi/types/client", "node", "bun-types"],
     "isolatedModules": true,
     "paths": {
-      "~/*": ["./src/*"],
-      "@/*": ["./drizzle/*"]
+      "~/*": ["./src/*"]
     }
   }
 }

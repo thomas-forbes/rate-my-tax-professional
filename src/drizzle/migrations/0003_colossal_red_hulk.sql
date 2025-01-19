@@ -1,0 +1,1 @@
+ALTER TABLE "professionals" ADD COLUMN "fromIrs" boolean DEFAULT false NOT NULL;

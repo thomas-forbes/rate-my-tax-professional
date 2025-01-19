@@ -1,22 +1,12 @@
 import { A } from '@solidjs/router'
 import { Star, ThumbsUp } from 'lucide-solid'
-import { For } from 'solid-js'
-import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
-
-type Professional = {
-  id: number
-  name: string
-  rating: number
-  reviewCount: number
-  countriesServed: string[]
-  wouldUseAgainPercentage: number
-}
+import { ProfessionalsWithStats } from '~/drizzle/schema'
 
 export function ProfessionalCard({
   professional,
 }: {
-  professional: Professional
+  professional: typeof ProfessionalsWithStats.$inferSelect
 }) {
   return (
     <A href={`/professional/${professional.id}`}>
@@ -35,15 +25,13 @@ export function ProfessionalCard({
             </div>
             <div class="flex items-center space-x-2">
               <ThumbsUp class="size-5 text-green-500" />
-              <span>
-                {professional.wouldUseAgainPercentage}% would use again
-              </span>
+              <span>{professional.useAgainPercent}% would use again</span>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
-            <For each={professional.countriesServed}>
+            {/* <For each={professional.countriesServed}>
               {(country) => <Badge variant="secondary">{country}</Badge>}
-            </For>
+            </For> */}
           </div>
         </CardContent>
       </Card>

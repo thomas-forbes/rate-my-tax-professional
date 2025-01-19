@@ -1,6 +1,6 @@
 {
-  "id": "e8ea16c5-e7ae-42a9-84b7-c3860ee6ed9b",
-  "prevId": "c9635f03-63da-4aaa-bd77-06d6deacac7d",
+  "id": "de175a9d-b282-46c4-a9ac-229e582dae84",
+  "prevId": "17565340-c2b3-4814-8386-b2304ee8c58c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -66,7 +66,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "professionals_country_index": {
+          "name": "professionals_country_index",
+          "columns": [
+            {
+              "expression": "country",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "professionals_country_countries_code_fk": {
           "name": "professionals_country_countries_code_fk",
@@ -106,8 +122,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "professional": {
-          "name": "professional",
+        "professionalId": {
+          "name": "professionalId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -150,14 +166,30 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "reviews_professionalId_index": {
+          "name": "reviews_professionalId_index",
+          "columns": [
+            {
+              "expression": "professionalId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "reviews_professional_professionals_id_fk": {
-          "name": "reviews_professional_professionals_id_fk",
+        "reviews_professionalId_professionals_id_fk": {
+          "name": "reviews_professionalId_professionals_id_fk",
           "tableFrom": "reviews",
           "tableTo": "professionals",
           "columnsFrom": [
-            "professional"
+            "professionalId"
           ],
           "columnsTo": [
             "id"
@@ -210,7 +242,66 @@
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
+  "views": {
+    "public.professionals_with_stats": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credential": {
+          "name": "credential",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rating": {
+          "name": "rating",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewCount": {
+          "name": "reviewCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "useAgainPercent": {
+          "name": "useAgainPercent",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "definition": "\n    SELECT \n      p.*,\n      COALESCE(AVG(r.\"overallRating\")::numeric(10,2), 0) as rating,\n      COUNT(r.id) as reviewCount,\n      CASE \n        WHEN COUNT(r.id) > 0 \n        THEN (SUM(CASE WHEN r.\"useAgain\" THEN 1 ELSE 0 END)::float / COUNT(r.id) * 100)::numeric(10,2)\n        ELSE 0 \n      END as useAgainPercent\n    FROM professionals p\n    LEFT JOIN reviews r ON p.id = r.\"professionalId\"\n    GROUP BY p.id, p.name, p.credential, p.address, p.country\n  ",
+      "name": "professionals_with_stats",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    }
+  },
   "_meta": {
     "columns": {},
     "schemas": {},
