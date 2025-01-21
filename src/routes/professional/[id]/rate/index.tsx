@@ -1,51 +1,75 @@
-import { useNavigate, useParams } from '@solidjs/router'
-import { Star } from 'lucide-solid'
+import {
+  action,
+  createAsync,
+  query,
+  useAction,
+  useNavigate,
+  useParams,
+  type RouteDefinition,
+} from '@solidjs/router'
+import { LoaderCircle, Star } from 'lucide-solid'
 import { createSignal, For } from 'solid-js'
+import { toast } from 'solid-sonner'
+import { db } from '~/api/db'
 import Layout from '~/components/Layout'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { Complexity, Countries, Reviews } from '~/drizzle/schema'
 
-const complexityOptions = [
-  { value: 'simple', label: 'Simple' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'complex', label: 'Complex' },
-  { value: 'very-complex', label: 'Very Complex' },
-]
+const getCountries = query(async () => {
+  const countries = await db.select().from(Countries)
+  return countries
+}, 'countries')
 
-const countries = [
-  { value: 'usa', label: 'USA' },
-  { value: 'uk', label: 'UK' },
-  { value: 'canada', label: 'Canada' },
-  { value: 'australia', label: 'Australia' },
-  { value: 'other', label: 'Other' },
-]
+const rateAction = action(async (data: typeof Reviews.$inferInsert) => {
+  'use server'
+  await db.insert(Reviews).values(data)
+})
+
+export const route: RouteDefinition = {
+  preload: () => getCountries(),
+}
 
 export default function RateProfessional() {
   const params = useParams()
+  const countries = createAsync(() => getCountries())
+
+  const rate = useAction(rateAction)
   const navigate = useNavigate()
-  const [rating, setRating] = createSignal(0)
+  const [overallRating, setOverallRating] = createSignal(0)
   const [valueRating, setValueRating] = createSignal(0)
-  const [complexity, setComplexity] = createSignal<string | undefined>()
-  const [wouldUseAgain, setWouldUseAgain] = createSignal(true)
+  const [complexity, setComplexity] = createSignal<Complexity>(
+    Complexity.Simple,
+  )
+  const [useAgain, setUseAgain] = createSignal(true)
   const [comment, setComment] = createSignal('')
   const [country, setCountry] = createSignal<string | undefined>()
 
-  const handleSubmit = (e: Event) => {
+  const [isLoading, setIsLoading] = createSignal(false)
+
+  const handleSubmit = async (e: Event) => {
     e.preventDefault()
-    // Here you would submit the rating to your backend
-    console.log({
-      professionalId: params.id,
-      rating: rating(),
-      valueRating: valueRating(),
-      complexity: complexity(),
-      wouldUseAgain: wouldUseAgain(),
-      comment: comment(),
-      country: country(),
-    })
-    // Navigate back to the professional's profile
-    navigate(`/professional/${params.id}`)
+    try {
+      setIsLoading(true)
+      await rate({
+        professionalId: params.id,
+        overallRating: overallRating(),
+        valueRating: valueRating(),
+        complexity: complexity(),
+        useAgain: useAgain(),
+        comment: comment(),
+        country: country(),
+      })
+      toast.success('Review submitted!')
+      navigate(`/professional/${params.id}`)
+    } catch (e) {
+      console.error(e)
+      toast.error('Unable to save your review. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -65,14 +89,14 @@ export default function RateProfessional() {
                     {(value) => (
                       <button
                         type="button"
-                        onClick={() => setRating(value)}
+                        onClick={() => setOverallRating(value)}
                         class="p-1 hover:scale-110 transition-transform"
                       >
                         <Star
                           class={`w-8 h-8 ${
-                            value <= rating()
+                            value <= overallRating()
                               ? 'fill-yellow-400 text-yellow-400'
-                              : 'fill-muted text-muted-foreground'
+                              : 'text-muted-foreground'
                           }`}
                         />
                       </button>
@@ -110,17 +134,17 @@ export default function RateProfessional() {
                 <Label>How complex was your tax situation?</Label>
                 <div class="relative">
                   <select
-                    value={complexity() ?? ''}
-                    onChange={(e) => setComplexity(e.currentTarget.value)}
+                    value={complexity()}
+                    onChange={(e) =>
+                      setComplexity(e.currentTarget.value as Complexity)
+                    }
                     class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
                   >
                     <option value="" disabled>
                       Select complexity
                     </option>
-                    <For each={complexityOptions}>
-                      {(option) => (
-                        <option value={option.value}>{option.label}</option>
-                      )}
+                    <For each={Object.values(Complexity)}>
+                      {(option) => <option value={option}>{option}</option>}
                     </For>
                   </select>
                 </div>
@@ -138,9 +162,9 @@ export default function RateProfessional() {
                     <option value="" disabled>
                       Select your country
                     </option>
-                    <For each={countries}>
-                      {(option) => (
-                        <option value={option.value}>{option.label}</option>
+                    <For each={countries()}>
+                      {(country) => (
+                        <option value={country.code}>{country.name}</option>
                       )}
                     </For>
                   </select>
@@ -153,15 +177,15 @@ export default function RateProfessional() {
                 <div class="flex gap-2">
                   <Button
                     type="button"
-                    variant={wouldUseAgain() ? 'default' : 'outline'}
-                    onClick={() => setWouldUseAgain(true)}
+                    variant={useAgain() ? 'default' : 'outline'}
+                    onClick={() => setUseAgain(true)}
                   >
                     Yes
                   </Button>
                   <Button
                     type="button"
-                    variant={!wouldUseAgain() ? 'default' : 'outline'}
-                    onClick={() => setWouldUseAgain(false)}
+                    variant={!useAgain() ? 'default' : 'outline'}
+                    onClick={() => setUseAgain(false)}
                   >
                     No
                   </Button>
@@ -181,11 +205,17 @@ export default function RateProfessional() {
 
               {/* Submit */}
               <div class="flex gap-4">
-                <Button type="submit">Submit Review</Button>
+                <Button type="submit" disabled={isLoading()}>
+                  {isLoading() && (
+                    <LoaderCircle class="size-4 animate-spin mr-2" />
+                  )}
+                  Submit Review
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate(`/professional/${params.id}`)}
+                  disabled={isLoading()}
                 >
                   Cancel
                 </Button>

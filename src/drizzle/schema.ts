@@ -10,6 +10,7 @@ import {
   text,
 } from 'drizzle-orm/pg-core'
 import { nanoid } from 'nanoid'
+import { enumToPgEnum } from '~/lib/funcs'
 
 const db_nanoid = (length?: number) => text().$defaultFn(() => nanoid(length))
 
@@ -57,12 +58,14 @@ export const ProfessionalsWithStats = pgView('professionals_with_stats', {
   `,
 )
 
-export const complexity = pgEnum('complexity', [
-  'simple',
-  'moderate',
-  'complex',
-  'very complex',
-])
+export enum Complexity {
+  Simple = 'simple',
+  Moderate = 'moderate',
+  Complex = 'complex',
+  VeryComplex = 'very complex',
+}
+
+export const complexity = pgEnum('complexity', enumToPgEnum(Complexity))
 
 export const Reviews = pgTable(
   'reviews',
@@ -81,3 +84,5 @@ export const Reviews = pgTable(
   },
   (table) => [index().on(table.professionalId)],
 )
+
+type a = typeof Reviews.$inferInsert
