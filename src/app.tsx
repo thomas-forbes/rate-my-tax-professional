@@ -7,11 +7,15 @@ import './app.css'
 
 export default function App() {
   return (
-    <>
-      <Router root={(props) => <Suspense>{props.children}</Suspense>}>
-        <FileRoutes />
-      </Router>
-      <Toaster />
-    </>
+    <Router
+      root={(props) => (
+        <Suspense>
+          {props.children}
+          <Toaster />
+        </Suspense>
+      )}
+    >
+      <FileRoutes />
+    </Router>
   )
 }

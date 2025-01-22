@@ -8,7 +8,13 @@ import {
   type RouteDefinition,
 } from '@solidjs/router'
 import { LoaderCircle, Star } from 'lucide-solid'
-import { createSignal, For } from 'solid-js'
+import {
+  createSignal,
+  For,
+  type Accessor,
+  type JSX,
+  type Setter,
+} from 'solid-js'
 import { toast } from 'solid-sonner'
 import { db } from '~/api/db'
 import Layout from '~/components/Layout'
@@ -17,8 +23,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Complexity, Countries, Reviews } from '~/drizzle/schema'
+import { cn } from '~/lib/cn'
 
 const getCountries = query(async () => {
+  'use server'
   const countries = await db.select().from(Countries)
   return countries
 }, 'countries')
@@ -32,35 +40,139 @@ export const route: RouteDefinition = {
   preload: () => getCountries(),
 }
 
+function Labeled({
+  label,
+  children,
+}: {
+  label: string
+  children: JSX.Element
+}) {
+  return (
+    <div class="space-y-2">
+      <Label>{label}</Label>
+      {children}
+    </div>
+  )
+}
+
+function RatingInput({
+  rating,
+  setRating,
+  error,
+  label,
+}: {
+  label: string
+  rating: Accessor<number | null>
+  setRating: Setter<number | null>
+  error: Accessor<boolean>
+}) {
+  return (
+    <Labeled label={label}>
+      <div class="flex gap-1">
+        <For each={[1, 2, 3, 4, 5]}>
+          {(value) => (
+            <button
+              type="button"
+              onClick={() => setRating(rating() === value ? null : value)}
+              class="p-1 hover:scale-110 transition-transform"
+            >
+              <Star
+                class={cn(
+                  'w-8 h-8',
+                  (() => {
+                    const _rating = rating()
+                    if (_rating && value <= _rating)
+                      return 'fill-yellow-400 text-yellow-400'
+                    return 'text-muted-foreground'
+                  })(),
+                )}
+              />
+            </button>
+          )}
+        </For>
+      </div>
+      {error() && <p class="text-red-500 text-sm">Please select a rating</p>}
+    </Labeled>
+  )
+}
+
 export default function RateProfessional() {
   const params = useParams()
   const countries = createAsync(() => getCountries())
 
   const rate = useAction(rateAction)
   const navigate = useNavigate()
-  const [overallRating, setOverallRating] = createSignal(0)
-  const [valueRating, setValueRating] = createSignal(0)
+  const [overallRating, setOverallRating] = createSignal<number | null>(null)
+  const [valueRating, setValueRating] = createSignal<number | null>(null)
   const [complexity, setComplexity] = createSignal<Complexity>(
     Complexity.Simple,
   )
-  const [useAgain, setUseAgain] = createSignal(true)
+  const [useAgain, setUseAgain] = createSignal<boolean | null>(null)
   const [comment, setComment] = createSignal('')
-  const [country, setCountry] = createSignal<string | undefined>()
+  const [country, setCountry] = createSignal<string | null>(null)
+
+  const [errors, setErrors] = createSignal(
+    {
+      overallRating: false,
+      valueRating: false,
+      complexity: false,
+      useAgain: false,
+      comment: false,
+      country: false,
+    },
+    { equals: false },
+  )
 
   const [isLoading, setIsLoading] = createSignal(false)
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault()
+    console.log('uh helllo')
+
     try {
+      const _overallRating = overallRating()
+      const _valueRating = valueRating()
+      const _useAgain = useAgain()
+      const _complexity = complexity()
+      const _comment = comment()
+      const _country = country()
+
+      const _errors = errors()
+      if (!_overallRating) _errors.overallRating = true
+      else _errors.overallRating = false
+      if (!_valueRating) _errors.valueRating = true
+      else _errors.valueRating = false
+      if (!_complexity) _errors.complexity = true
+      else _errors.complexity = false
+      if (!_country) _errors.country = true
+      else _errors.country = false
+      if (!_useAgain) _errors.useAgain = true
+      else _errors.useAgain = false
+      if (!_comment) _errors.comment = true
+      else _errors.comment = false
+
+      setErrors(_errors)
+      console.log('bruh', _errors)
+
+      if (
+        !_overallRating ||
+        !_valueRating ||
+        !_complexity ||
+        !_country ||
+        !_useAgain ||
+        !_comment
+      )
+        return
+
       setIsLoading(true)
       await rate({
         professionalId: params.id,
-        overallRating: overallRating(),
-        valueRating: valueRating(),
-        complexity: complexity(),
-        useAgain: useAgain(),
-        comment: comment(),
-        country: country(),
+        overallRating: _overallRating,
+        valueRating: _valueRating,
+        complexity: _complexity,
+        useAgain: _useAgain,
+        comment: _comment,
+        country: _country,
       })
       toast.success('Review submitted!')
       navigate(`/professional/${params.id}`)
@@ -82,56 +194,23 @@ export default function RateProfessional() {
           <CardContent>
             <form onSubmit={handleSubmit} class="space-y-6">
               {/* Overall Rating */}
-              <div class="space-y-2">
-                <Label>Overall Rating</Label>
-                <div class="flex gap-1">
-                  <For each={[1, 2, 3, 4, 5]}>
-                    {(value) => (
-                      <button
-                        type="button"
-                        onClick={() => setOverallRating(value)}
-                        class="p-1 hover:scale-110 transition-transform"
-                      >
-                        <Star
-                          class={`w-8 h-8 ${
-                            value <= overallRating()
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-muted-foreground'
-                          }`}
-                        />
-                      </button>
-                    )}
-                  </For>
-                </div>
-              </div>
+              <RatingInput
+                rating={overallRating}
+                setRating={setOverallRating}
+                error={() => errors().overallRating}
+                label="Overall Rating"
+              />
 
               {/* Value Rating */}
-              <div class="space-y-2">
-                <Label>Value Rating</Label>
-                <div class="flex gap-1">
-                  <For each={[1, 2, 3, 4, 5]}>
-                    {(value) => (
-                      <button
-                        type="button"
-                        onClick={() => setValueRating(value)}
-                        class="p-1 hover:scale-110 transition-transform"
-                      >
-                        <Star
-                          class={`w-8 h-8 ${
-                            value <= valueRating()
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'fill-muted text-muted-foreground'
-                          }`}
-                        />
-                      </button>
-                    )}
-                  </For>
-                </div>
-              </div>
+              <RatingInput
+                rating={valueRating}
+                setRating={setValueRating}
+                error={() => errors().valueRating}
+                label="Value Rating"
+              />
 
               {/* Complexity */}
-              <div class="space-y-2">
-                <Label>How complex was your tax situation?</Label>
+              <Labeled label="How complex was your tax situation?">
                 <div class="relative">
                   <select
                     value={complexity()}
@@ -148,11 +227,13 @@ export default function RateProfessional() {
                     </For>
                   </select>
                 </div>
-              </div>
+                {errors().complexity && (
+                  <p class="text-red-500 text-sm">Please select a complexity</p>
+                )}
+              </Labeled>
 
               {/* Country */}
-              <div class="space-y-2">
-                <Label>Your Country</Label>
+              <Labeled label="Your Country">
                 <div class="relative">
                   <select
                     value={country() ?? ''}
@@ -169,39 +250,48 @@ export default function RateProfessional() {
                     </For>
                   </select>
                 </div>
-              </div>
+                {errors().country && (
+                  <p class="text-red-500 text-sm">Please select a country</p>
+                )}
+              </Labeled>
 
               {/* Would Use Again */}
-              <div class="space-y-2">
-                <Label>Would you use this professional again?</Label>
+              <Labeled label="Would you use this professional again?">
                 <div class="flex gap-2">
                   <Button
                     type="button"
-                    variant={useAgain() ? 'default' : 'outline'}
-                    onClick={() => setUseAgain(true)}
+                    variant={useAgain() === true ? 'default' : 'outline'}
+                    onClick={() => setUseAgain(useAgain() ? null : true)}
                   >
                     Yes
                   </Button>
                   <Button
                     type="button"
-                    variant={!useAgain() ? 'default' : 'outline'}
-                    onClick={() => setUseAgain(false)}
+                    variant={useAgain() === false ? 'default' : 'outline'}
+                    onClick={() =>
+                      setUseAgain(useAgain() === false ? null : false)
+                    }
                   >
                     No
                   </Button>
                 </div>
-              </div>
+                {errors().useAgain && (
+                  <p class="text-red-500 text-sm">Please select an option</p>
+                )}
+              </Labeled>
 
               {/* Comment */}
-              <div class="space-y-2">
-                <Label>Your Review</Label>
+              <Labeled label="Your Review">
                 <Input
                   type="text"
                   placeholder="Share your experience..."
                   value={comment()}
                   onInput={(e) => setComment(e.currentTarget.value)}
                 />
-              </div>
+                {errors().comment && (
+                  <p class="text-red-500 text-sm">Please enter a comment</p>
+                )}
+              </Labeled>
 
               {/* Submit */}
               <div class="flex gap-4">

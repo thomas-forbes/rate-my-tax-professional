@@ -198,27 +198,27 @@ function ProfessionalHeader({ professional }: ProfessionalHeaderProps) {
 //   )
 // }
 
-const getProfessional = query(async () => {
+const getProfessional = query(async (id: string) => {
   'use server'
-  const params = useParams()
   const professional = (
     await db
       .select()
       .from(ProfessionalsWithStats)
-      .where(eq(ProfessionalsWithStats.id, params.id))
+      .where(eq(ProfessionalsWithStats.id, id))
       .limit(1)
   )[0]
 
-  if (!professional) redirect('/')
+  if (!professional) throw redirect('/')
   return professional
 }, 'professional')
 
 export const route: RouteDefinition = {
-  preload: () => getProfessional(),
+  preload: (options) => getProfessional(options.params.id),
 }
 
 export default function ProfessionalProfile() {
-  const professional = createAsync(() => getProfessional())
+  const params = useParams()
+  const professional = createAsync(() => getProfessional(params.id))
   return (
     <Layout>
       <Show when={professional()} fallback={<div>Loading...</div>}>
