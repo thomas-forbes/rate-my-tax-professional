@@ -7,13 +7,14 @@ import {
   type RouteDefinition,
 } from '@solidjs/router'
 import { eq } from 'drizzle-orm'
-import { Star, ThumbsUp } from 'lucide-solid'
-import { Show } from 'solid-js'
+import { MapPin, Star, ThumbsUp } from 'lucide-solid'
+import { For, Show, Suspense, type Accessor } from 'solid-js'
 import { db } from '~/api/db'
 import Layout from '~/components/Layout'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
-import { ProfessionalsWithStats } from '~/drizzle/schema'
+import { Countries, ProfessionalsWithStats, Reviews } from '~/drizzle/schema'
 
 // Components
 type ProfessionalHeaderProps = {
@@ -49,6 +50,13 @@ function ProfessionalHeader({ professional }: ProfessionalHeaderProps) {
           <ThumbsUp class="w-5 h-5 text-green-500" />
           <span>{professional.useAgainPercent}% would use again</span>
         </div>
+        <div class="flex-1" />
+        <Show when={professional.fromIrs}>
+          <Badge variant="outline" class="flex items-center gap-1">
+            <img src="/images/wikipedia.svg" class="size-5" />
+            IRS Approved
+          </Badge>
+        </Show>
       </div>
 
       <div class="flex gap-4">
@@ -104,73 +112,98 @@ function ProfessionalHeader({ professional }: ProfessionalHeaderProps) {
 //   )
 // }
 
+const getReviews = query(async (id: string) => {
+  'use server'
+  const reviews = await db
+    .select({
+      reviewId: Reviews.id,
+      professionalId: Reviews.professionalId,
+      countryCode: Reviews.country,
+      overallRating: Reviews.overallRating,
+      valueRating: Reviews.valueRating,
+      complexity: Reviews.complexity,
+      useAgain: Reviews.useAgain,
+      comment: Reviews.comment,
+      createdAt: Reviews.createdAt,
+
+      countryName: Countries.name,
+    })
+    .from(Reviews)
+    .where(eq(Reviews.professionalId, id))
+    .leftJoin(Countries, eq(Reviews.country, Countries.code))
+  return reviews
+}, 'reviews')
+
 // Commented out until we have review data
-// function ReviewList({ professionalId }: { professionalId: string }) {
-//   return (
-//     <div class="space-y-6">
-//       <h3 class="text-lg font-semibold">Reviews</h3>
-//       <div class="space-y-4">
-//         <For each={reviews}>
-//           {(review) => (
-//             <Card>
-//               <CardContent class="pt-6">
-//                 <div class="space-y-4">
-//                   <div class="flex items-center justify-between">
-//                     <div class="flex items-center gap-4">
-//                       <div class="flex items-center">
-//                         <For each={Array(5).fill(0)}>
-//                           {(_, i) => (
-//                             <Star
-//                               class={`w-4 h-4 ${
-//                                 i() < review.rating
-//                                   ? 'fill-yellow-400 text-yellow-400'
-//                                   : 'fill-muted text-muted-foreground'
-//                               }`}
-//                             />
-//                           )}
-//                         </For>
-//                       </div>
-//                       <Badge variant="outline">
-//                         <MapPin class="w-3 h-3 mr-1" />
-//                         {review.userCountry}
-//                       </Badge>
-//                       <Show when={review.wouldUseAgain}>
-//                         <Badge variant="secondary">
-//                           <ThumbsUp class="w-3 h-3 mr-1" />
-//                           Would use again
-//                         </Badge>
-//                       </Show>
-//                     </div>
-//                     <div class="text-sm text-muted-foreground">
-//                       {new Date(review.date).toLocaleDateString()}
-//                     </div>
-//                   </div>
+function ReviewList({ professionalId }: { professionalId: Accessor<string> }) {
+  const reviews = createAsync(() => getReviews(professionalId()))
+  return (
+    <div class="space-y-6">
+      <h3 class="text-lg font-semibold">Reviews</h3>
+      <div class="space-y-4">
+        <For each={reviews()}>
+          {(review) => (
+            <Card>
+              <CardContent class="pt-6">
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                      <div class="flex items-center">
+                        <For each={Array(5).fill(0)}>
+                          {(_, i) => (
+                            <Star
+                              class={`w-4 h-4 ${
+                                i() < review.overallRating
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-muted-foreground'
+                              }`}
+                            />
+                          )}
+                        </For>
+                      </div>
+                      <Show when={review.countryName}>
+                        <Badge variant="outline">
+                          <MapPin class="w-3 h-3 mr-1" />
+                          {review.countryName}
+                        </Badge>
+                      </Show>
+                      <Show when={review.useAgain}>
+                        <Badge variant="secondary">
+                          <ThumbsUp class="w-3 h-3 mr-1 text-green-500" />
+                          Would use again
+                        </Badge>
+                      </Show>
+                    </div>
+                    <div class="text-sm text-muted-foreground">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
 
-//                   <div class="flex gap-4 text-sm">
-//                     <div>
-//                       <span class="text-muted-foreground">Value: </span>
-//                       {review.valueRating}/5
-//                     </div>
-//                     <div>
-//                       <span class="text-muted-foreground">Complexity: </span>
-//                       {review.complexity}
-//                     </div>
-//                   </div>
+                  <div class="flex gap-4 text-sm">
+                    <div>
+                      <span class="text-muted-foreground">Value: </span>
+                      {review.valueRating}/5
+                    </div>
+                    <div>
+                      <span class="text-muted-foreground">Complexity: </span>
+                      {review.complexity}
+                    </div>
+                  </div>
 
-//                   <p class="text-sm">{review.comment}</p>
+                  <p class="text-sm">{review.comment}</p>
 
-//                   <div class="text-sm text-muted-foreground">
-//                     {review.helpful} people found this helpful
-//                   </div>
-//                 </div>
-//               </CardContent>
-//             </Card>
-//           )}
-//         </For>
-//       </div>
-//     </div>
-//   )
-// }
+                  {/* <div class="text-sm text-muted-foreground">
+                    {review.helpful} people found this helpful
+                  </div> */}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </For>
+      </div>
+    </div>
+  )
+}
 
 // Commented out until we have similar professionals data
 // function SimilarProfessionals({
@@ -239,9 +272,9 @@ export default function ProfessionalProfile() {
                 </Card> */}
 
                 {/* Reviews - Commented out until we have the data */}
-                {/* <Suspense fallback={<div>Loading reviews...</div>}>
-                  <ReviewList professionalId={professional.id} />
-                </Suspense> */}
+                <Suspense fallback={<div>Loading reviews...</div>}>
+                  <ReviewList professionalId={() => professional().id} />
+                </Suspense>
               </div>
 
               {/* Sidebar */}

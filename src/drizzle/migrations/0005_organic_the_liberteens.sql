@@ -1,0 +1,1 @@
+ALTER TABLE "reviews" ADD COLUMN "createdAt" timestamp DEFAULT now() NOT NULL;

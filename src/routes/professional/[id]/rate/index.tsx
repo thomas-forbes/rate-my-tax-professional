@@ -127,7 +127,6 @@ export default function RateProfessional() {
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault()
-    console.log('uh helllo')
 
     try {
       const _overallRating = overallRating()
@@ -146,20 +145,19 @@ export default function RateProfessional() {
       else _errors.complexity = false
       if (!_country) _errors.country = true
       else _errors.country = false
-      if (!_useAgain) _errors.useAgain = true
+      if (_useAgain === null) _errors.useAgain = true
       else _errors.useAgain = false
       if (!_comment) _errors.comment = true
       else _errors.comment = false
 
       setErrors(_errors)
-      console.log('bruh', _errors)
 
       if (
         !_overallRating ||
         !_valueRating ||
         !_complexity ||
         !_country ||
-        !_useAgain ||
+        _useAgain === null ||
         !_comment
       )
         return

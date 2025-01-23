@@ -36,6 +36,20 @@
       "when": 1737324986709,
       "tag": "0004_little_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1737654689718,
+      "tag": "0005_organic_the_liberteens",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1737655746117,
+      "tag": "0010_flaky_triathlon",
+      "breakpoints": true
     }
   ]
 }

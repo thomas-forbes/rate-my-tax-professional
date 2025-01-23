@@ -8,6 +8,7 @@ import {
   pgTable,
   pgView,
   text,
+  timestamp,
 } from 'drizzle-orm/pg-core'
 import { nanoid } from 'nanoid'
 import { enumToPgEnum } from '~/lib/funcs'
@@ -39,13 +40,19 @@ export const ProfessionalsWithStats = pgView('professionals_with_stats', {
   address: text().notNull(),
   country: text().notNull(),
   rating: numeric(),
+  fromIrs: boolean().notNull().default(false),
   reviewCount: integer().notNull().default(0),
   useAgainPercent: numeric(),
 }).as(
   sql`
     SELECT 
-      p.*,
-      COALESCE(AVG(r."overallRating")::numeric(10,2), 0) as rating,
+      p.id,
+      p.name,
+      p.credential,
+      p.address,
+      p.country,
+      p."fromIrs",
+      COALESCE(AVG(r."overallRating")::numeric(10, 2), 0) as rating,
       COUNT(r.id) as "reviewCount",
       CASE 
         WHEN COUNT(r.id) > 0 
@@ -54,7 +61,7 @@ export const ProfessionalsWithStats = pgView('professionals_with_stats', {
       END as "useAgainPercent"
     FROM professionals p
     LEFT JOIN reviews r ON p.id = r."professionalId"
-    GROUP BY p.id, p.name, p.credential, p.address, p.country
+    GROUP BY p.id, p.name, p.credential, p.address, p.country, p."fromIrs"
   `,
 )
 
@@ -81,8 +88,8 @@ export const Reviews = pgTable(
 
     useAgain: boolean().notNull(),
     comment: text(),
+
+    createdAt: timestamp().defaultNow().notNull(),
   },
   (table) => [index().on(table.professionalId)],
 )
-
-type a = typeof Reviews.$inferInsert
