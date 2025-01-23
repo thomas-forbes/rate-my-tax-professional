@@ -246,7 +246,10 @@ const getProfessional = query(async (id: string) => {
 }, 'professional')
 
 export const route: RouteDefinition = {
-  preload: (options) => getProfessional(options.params.id),
+  preload: (options) => {
+    getProfessional(options.params.id)
+    getReviews(options.params.id)
+  },
 }
 
 export default function ProfessionalProfile() {
