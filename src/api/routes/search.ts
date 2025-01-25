@@ -20,7 +20,7 @@ export async function searchProfessionals({
   country,
   sort = 'rating',
   page = 1,
-  limit = 10,
+  limit = 20,
 }: SearchParams) {
   'use server'
   const offset = (page - 1) * limit

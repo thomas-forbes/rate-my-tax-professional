@@ -1,51 +1,32 @@
 import { useSearchParams } from '@solidjs/router'
 import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-solid'
+import {
   For,
+  Match,
   Show,
-  createEffect,
+  Suspense,
+  Switch,
   createResource,
-  createSignal,
-  on,
-  onCleanup,
   type Accessor,
 } from 'solid-js'
 import { searchProfessionals, type SearchParams } from '~/api/routes/search'
 import Layout from '~/components/Layout'
-import { ProfessionalCard } from '~/components/search/ProfessionalCard'
+import {
+  ProfessionalCard,
+  ProfessionalCardSkeleton,
+} from '~/components/search/ProfessionalCard'
 import SearchForm from '~/components/search/SearchForm'
+import { useDebounce } from '~/lib/hooks/useDebounce'
+import useQueryState from '~/lib/hooks/useQueryState'
 import { SearchQueryParams } from '~/lib/types'
 
 const stringGet = (value: string | string[] | undefined) =>
   typeof value === 'string' ? value : undefined
-
-function useDebounce<T>(
-  value: Accessor<T>,
-  delay: number,
-): [Accessor<T>, Accessor<boolean>] {
-  const [debouncedValue, setDebouncedValue] = createSignal<T>(value())
-  const [isLoading, setIsLoading] = createSignal(false)
-
-  let debounceTimer: Timer
-  createEffect(
-    on(
-      value,
-      () => {
-        setIsLoading(true)
-
-        clearTimeout(debounceTimer)
-        debounceTimer = setTimeout(() => {
-          setDebouncedValue(() => value())
-          setIsLoading(false)
-        }, delay)
-
-        onCleanup(() => clearTimeout(debounceTimer))
-      },
-      { defer: true },
-    ),
-  )
-
-  return [debouncedValue, isLoading]
-}
 
 export default function Search() {
   const [searchParams] = useSearchParams()
@@ -60,7 +41,7 @@ export default function Search() {
       page: parseInt(stringGet(searchParams[SearchQueryParams.Page]) ?? '1'),
     } satisfies SearchParams
   }
-  const [debouncedRequestParams, isLoading] = useDebounce(requestParams, 500)
+  const [debouncedRequestParams, isSearching] = useDebounce(requestParams, 300)
   const [searchResults] = createResource(
     debouncedRequestParams,
     searchProfessionals,
@@ -72,19 +53,96 @@ export default function Search() {
         <h1 class="text-2xl font-bold">Search</h1>
         <SearchForm />
         <hr />
-        <Show
-          when={!searchResults.loading && !isLoading()}
-          fallback={<div class="text-center">Loading...</div>}
-        >
-          <div class="grid grid-cols-2 gap-4">
-            <For each={searchResults()?.professionals}>
-              {(professional) => (
-                <ProfessionalCard professional={professional} />
-              )}
-            </For>
-          </div>
-        </Show>
+        <div class="grid grid-cols-2 gap-4">
+          <Suspense fallback={<Skeletons />}>
+            <Switch>
+              <Match when={isSearching()}>
+                <Skeletons />
+              </Match>
+              <Match when={searchResults()?.professionals?.length === 0}>
+                <div class="text-center col-span-2">No results found</div>
+              </Match>
+              <Match when={true}>
+                <For each={searchResults()?.professionals}>
+                  {(professional) => (
+                    <ProfessionalCard professional={professional} />
+                  )}
+                </For>
+              </Match>
+            </Switch>
+          </Suspense>
+        </div>
+        <Suspense>
+          <Show
+            when={
+              searchResults()?.pagination.total &&
+              searchResults()?.pagination.limit
+            }
+          >
+            <Pagination
+              limit={() => searchResults()?.pagination.limit!}
+              total={() => searchResults()?.pagination.total!}
+            />
+          </Show>
+        </Suspense>
       </div>
     </Layout>
+  )
+}
+
+function Pagination({
+  total,
+  limit,
+}: {
+  total: Accessor<number>
+  limit: Accessor<number>
+}) {
+  const [pageQuery, setPageQuery] = useQueryState(SearchQueryParams.Page, '1')
+  const page = () => parseInt(pageQuery() ?? '1')
+
+  const back = () => setPageQuery('1')
+  const right = () => setPageQuery((page() + 1).toString())
+  const left = () => setPageQuery((page() - 1).toString())
+
+  const finalPage = () => Math.ceil(total() / limit())
+  return (
+    <div class="flex justify-center items-center">
+      <button
+        class="px-1 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={page() === 1}
+        onClick={back}
+      >
+        <ChevronsLeft class="size-4" />
+      </button>
+      <button
+        class="px-1 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={page() === 1}
+        onClick={left}
+      >
+        <ChevronLeft class="size-4" />
+      </button>
+      <span class="text-sm text-muted-foreground font-mono px-2">
+        {page()} of {finalPage()}
+      </span>
+      <button
+        class="px-1 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={page() === finalPage()}
+        onClick={right}
+      >
+        <ChevronRight class="size-4" />
+      </button>
+
+      <div class="px-1 py-2 invisible">
+        <ChevronsRight class="size-4" />
+      </div>
+    </div>
+  )
+}
+
+function Skeletons() {
+  return (
+    <For each={Array.from({ length: 8 })}>
+      {() => <ProfessionalCardSkeleton />}
+    </For>
   )
 }

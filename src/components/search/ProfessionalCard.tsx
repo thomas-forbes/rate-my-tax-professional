@@ -3,6 +3,10 @@ import { Star, ThumbsUp } from 'lucide-solid'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { ProfessionalsWithStats } from '~/drizzle/schema'
 
+export function ProfessionalCardSkeleton() {
+  return <Card class="h-24 w-full bg-zinc-100 animate-pulse rounded-md" />
+}
+
 export function ProfessionalCard({
   professional,
 }: {
