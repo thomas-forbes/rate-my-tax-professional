@@ -21,6 +21,7 @@ export function initClientPosthog() {
 
 export enum PostHogEvents {
   ReviewSubmitted = 'review_submitted',
+  Search = 'search',
 }
 
 export const ANONYMOUS_ID = 'anonymous_id'

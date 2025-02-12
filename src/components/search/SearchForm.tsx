@@ -1,4 +1,5 @@
 import { createAsync } from '@solidjs/router'
+import posthog from 'posthog-js'
 import { createEffect, createSignal } from 'solid-js'
 import type { SortOption } from '~/api/routes/search'
 import { getCountries } from '~/api/server'
@@ -19,6 +20,7 @@ import {
 } from '~/components/ui/select'
 import { CountriesWithStats } from '~/drizzle/schema'
 import useQueryState from '~/lib/hooks/useQueryState'
+import { PostHogEvents } from '~/lib/posthog'
 import { SearchQueryParams } from '~/lib/types'
 
 const sortOptions: SortOption[] = [
@@ -53,8 +55,33 @@ export default function SearchForm() {
     setPageQuery(null)
   })
 
-  const onInputChange = (value: string) => {
+  let searchEventTimeout: ReturnType<typeof setTimeout> | null = null
+  const onNameInputChange = (e: InputEvent) => {
+    if (!(e.currentTarget instanceof HTMLInputElement)) return
+
+    setName(e.currentTarget.value)
+    setPageQuery(null)
+
+    if (searchEventTimeout) clearTimeout(searchEventTimeout)
+    searchEventTimeout = setTimeout(() => {
+      posthog.capture(PostHogEvents.Search, {
+        name: name(),
+        country: country()?.code,
+      })
+    }, 5000)
+  }
+
+  const onCountryInputChange = (value: string) => {
     if (!value) setCountry(null)
+  }
+
+  const onCountryChange = (
+    value: typeof CountriesWithStats.$inferSelect | null,
+  ) => {
+    setCountry(value)
+    posthog.capture(PostHogEvents.Search, {
+      country: value?.code,
+    })
   }
 
   return (
@@ -67,10 +94,7 @@ export default function SearchForm() {
           id="professional-name"
           placeholder="Professional's name"
           value={name() ?? undefined}
-          onInput={(e) => {
-            setName(e.currentTarget.value)
-            setPageQuery(null)
-          }}
+          onInput={onNameInputChange}
         />
       </div>
       <div class="flex-1 min-w-[200px]">
@@ -85,8 +109,8 @@ export default function SearchForm() {
           optionTextValue="name"
           value={country()}
           defaultFilter="contains"
-          onInputChange={onInputChange}
-          onChange={(value) => setCountry(value)}
+          onInputChange={onCountryInputChange}
+          onChange={onCountryChange}
           itemComponent={(props) => (
             <ComboboxItem item={props.item}>
               {props.item.rawValue.name}{' '}
