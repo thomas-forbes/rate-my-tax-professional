@@ -80,6 +80,7 @@ export default function SearchForm() {
   ) => {
     setCountry(value)
     posthog.capture(PostHogEvents.Search, {
+      name: name(),
       country: value?.code,
     })
   }
